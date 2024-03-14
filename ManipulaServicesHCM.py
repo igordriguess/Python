@@ -2,6 +2,7 @@ import subprocess
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
+import os
 
 # Função para exibir mensagem de instrução
 def exibir_mensagem():
@@ -31,29 +32,6 @@ def primeira_consulta():
     entry_codigo_hcm.config(state=tk.NORMAL)  # Habilitar o campo
     botao_consultar.config(command=segunda_consulta)  # Configurar o botão para executar a segunda consulta
 
-# Função para converter o resultado para formato JSON
-def convert_to_json(resultado):
-    lines = resultado.strip().split('\n')
-    resultados_json = []
-    for line in lines:
-        data = line.split()
-        # Verificar se a linha contém os valores esperados
-        if len(data) >= 4:
-            # Capturar PSComputerName, Name, PathName e State
-            ps_computer_name = data[0]
-            name = data[1]
-            path_name = data[2]
-            # O campo State pode estar na última posição ou na posição 3
-            state = data[-1] if data[-1].startswith("Running") or data[-1].startswith("Stopped") else data[3]
-            resultado_dict = {
-                "PSComputerName": ps_computer_name,
-                "Name": name,
-                "PathName": path_name,
-                "State": state
-            }
-            resultados_json.append(resultado_dict)
-    return resultados_json
-
 # Função para limpar a tabela
 def limpar_tabela():
     for item in treeview.get_children():
@@ -72,6 +50,11 @@ def inserir_na_tabela(resultado):
             path_name = data[2]
             # O campo State pode estar na última posição ou na posição 3
             state = data[-1] if data[-1].startswith("Running") or data[-1].startswith("Stopped") else data[3]
+            # Ajustar o PathName para exibir apenas o nome do arquivo até ".exe"
+            file_name = os.path.basename(path_name)
+            exe_index = file_name.find(".exe")
+            if exe_index != -1:
+                file_name = file_name[:exe_index + 4]
             treeview.insert('', 'end', values=(ps_computer_name, name, path_name, state))
             # Adicionar uma linha em branco após cada inserção
             treeview.insert('', 'end', values=('', '', '', ''))
@@ -198,10 +181,10 @@ opcao_homologacao.grid(row=1, column=0, padx=5, pady=5)
 
 # Adicionar widget Treeview para mostrar os resultados
 treeview = ttk.Treeview(janela, columns=('PSComputerName', 'Name', 'PathName', 'State'), show='headings')
-treeview.heading('PSComputerName', text='PSComputerName')
-treeview.heading('Name', text='Name')
-treeview.heading('PathName', text='PathName')
-treeview.heading('State', text='State')
+treeview.heading('PSComputerName', text='Computador')
+treeview.heading('Name', text='Serviço')
+treeview.heading('PathName', text='Diretório')
+treeview.heading('State', text='Status')
 treeview.grid(row=5, columnspan=2, padx=5, pady=5)
 
 # Botão para consultar os serviços
