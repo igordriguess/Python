@@ -2,11 +2,10 @@ import subprocess
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
-import os
 
 # Função para exibir mensagem de instrução
 def exibir_mensagem():
-    messagebox.showinfo("Instrução", 'Digite o nome do cliente e clique em "Consultar", será consultado o Serviço de Informação da Instalação. Valide o código HCM do cliente, digite o código no campo que será habilitado e escolha o tipo de ambiente, em seguida, clique em "Consultar" novamente.')
+    messagebox.showinfo("Instrução", 'Digite o nome do cliente e clique em "Consultar", será consultado o Serviço de Informação da Instalação.\n\nConfirme o código HCM do cliente, digite o código no campo que será habilitado e escolha o tipo de ambiente, Produção ou Homologação, em seguida, clique em "Consultar" novamente.\n\nNo botão inferior, selecione o serviço desejado ou clique em "Todos" para executar o comando em todos os serviços apresentados.')
 
 # Função para realizar a primeira consulta e exibir resultados
 def primeira_consulta():
@@ -48,16 +47,9 @@ def inserir_na_tabela(resultado):
             ps_computer_name = data[0]
             name = data[1]
             path_name = data[2]
-            # O campo State pode estar na última posição ou na posição 3
-            state = data[-1] if data[-1].startswith("Running") or data[-1].startswith("Stopped") else data[3]
-            # Ajustar o PathName para exibir apenas o nome do arquivo até ".exe"
-            file_name = os.path.basename(path_name)
-            exe_index = file_name.find(".exe")
-            if exe_index != -1:
-                file_name = file_name[:exe_index + 4]
+            # Encontrar o campo 'State'
+            state = next((x for x in data if x == "Running" or x == "Stopped"), "N/A")
             treeview.insert('', 'end', values=(ps_computer_name, name, path_name, state))
-            # Adicionar uma linha em branco após cada inserção
-            treeview.insert('', 'end', values=('', '', '', ''))
 
 # Função para realizar a segunda consulta e exibir resultados
 def segunda_consulta():
@@ -74,10 +66,13 @@ def segunda_consulta():
     else:
         ambiente = "h"
 
-    nome_cliente_formatado = f"{nome_cliente}_{codigo_hcm}_{ambiente}"
+    nome_cliente_formatado = f"{nome_cliente}_{codigo_hcm}_{ambiente}".lower()
 
     # Limpar a tabela anterior
     limpar_tabela()
+
+    # Lista para armazenar todos os serviços
+    all_services = []
 
     for computador in computadores:
         # Comando para verificar o serviço
@@ -89,11 +84,30 @@ def segunda_consulta():
         # Inserir resultado na tabela
         inserir_na_tabela(resultado)
 
+        # Adicionar os serviços da consulta atual à lista de todos os serviços
+        lines = resultado.strip().split('\n')
+        services = [line.split()[1] for line in lines if len(line.split()) >= 4]  # Capturar apenas o nome do serviço
+        all_services.extend(services)
+
+    # Preencher o Combobox com todos os serviços
+    preencher_combobox(all_services)
+
+    # Atualizar a janela para exibir o Combobox e os botões
+    combobox_servicos.grid(row=6, columnspan=3, padx=5, pady=5)
+    botao_iniciar.grid(row=7, column=0, padx=5, pady=5)
+    botao_parar.grid(row=7, column=1, padx=5, pady=5)
+
+# Função para preencher o Combobox com os nomes dos serviços
+def preencher_combobox(services):
+    services = [service for service in services if service != "Name"]  # Excluir a linha "Name" se presente
+    combobox_servicos['values'] = ["Todos"] + services
+
 # Função para INICIAR os serviços
 def iniciar_servicos():
-    # Obter o código HCM e o nome do cliente
+    # Obter o código HCM, nome do cliente e serviço selecionado
     codigo_hcm = entry_codigo_hcm.get()
     nome_cliente = entry_nome_cliente.get()
+    servico_selecionado = combobox_servicos.get()
 
     # Definir o ambiente com base na seleção
     tipo_ambiente = var_tipo_ambiente.get()
@@ -107,26 +121,24 @@ def iniciar_servicos():
 
     # Loop sobre os computadores
     for computador in computadores:
-        # Comando para parar o serviço
-        comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }}).StartService()'
+        # Comando para iniciar o serviço
+        if servico_selecionado == "Todos":
+            comando_iniciar = f'Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | ForEach-Object {{ $_.StartService() }}'
+        else:
+            comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -eq "{servico_selecionado}" }}).StartService()'
 
-        # Executa o comando no PowerShell para parar o serviço
+        # Executa o comando no PowerShell para iniciar o serviço
         resultado_iniciar = subprocess.run(['powershell', '-Command', comando_iniciar])
 
-        # Comando para verificar novamente o serviço
-        comando_consultar_um = f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | Format-Table PSComputerName, Name, PathName, State'
-
-        # Executa o comando no PowerShell e captura a saída do comando_dois
-        resultado_comando_um = subprocess.check_output(['powershell', comando_consultar_um], text=True)
-
-        # Inserir resultado na tabela
-        inserir_na_tabela(resultado_comando_um)
+        # Atualizar a tabela com o novo estado do serviço
+        segunda_consulta()
 
 # Função para PARAR os serviços
 def parar_servicos():
-    # Obter o código HCM e o nome do cliente
+    # Obter o código HCM, nome do cliente e serviço selecionado
     codigo_hcm = entry_codigo_hcm.get()
     nome_cliente = entry_nome_cliente.get()
+    servico_selecionado = combobox_servicos.get()
 
     # Definir o ambiente com base na seleção
     tipo_ambiente = var_tipo_ambiente.get()
@@ -141,19 +153,16 @@ def parar_servicos():
     # Loop sobre os computadores
     for computador in computadores:
         # Comando para parar o serviço
-        comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }}).StopService()'
+        if servico_selecionado == "Todos":
+            comando_parar = f'Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | ForEach-Object {{ $_.StopService() }}'
+        else:
+            comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -eq "{servico_selecionado}" }}).StopService()'
 
         # Executa o comando no PowerShell para parar o serviço
         resultado_parar = subprocess.run(['powershell', '-Command', comando_parar])
 
-        # Comando para verificar novamente o serviço
-        comando_consultar_dois = f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | Format-Table PSComputerName, Name, PathName, State'
-
-        # Executa o comando no PowerShell e captura a saída do comando_dois
-        resultado_comando_dois = subprocess.check_output(['powershell', comando_consultar_dois], text=True)
-
-        # Inserir resultado na tabela
-        inserir_na_tabela(resultado_comando_dois)
+        # Atualizar a tabela com o novo estado do serviço
+        segunda_consulta()
 
 # Criar a janela
 janela = tk.Tk()
@@ -177,34 +186,35 @@ opcao_producao = tk.Radiobutton(janela, text="Produção", variable=var_tipo_amb
 opcao_producao.grid(row=1, column=1, padx=5, pady=5)
 
 opcao_homologacao = tk.Radiobutton(janela, text="Homologação", variable=var_tipo_ambiente, value="Homologação")
-opcao_homologacao.grid(row=1, column=0, padx=5, pady=5)
+opcao_homologacao.grid(row=1, column=2, padx=5, pady=5)
 
 # Adicionar widget Treeview para mostrar os resultados
 treeview = ttk.Treeview(janela, columns=('PSComputerName', 'Name', 'PathName', 'State'), show='headings')
-treeview.heading('PSComputerName', text='Computador')
+treeview.heading('PSComputerName', text='Servidor')
 treeview.heading('Name', text='Serviço')
 treeview.heading('PathName', text='Diretório')
 treeview.heading('State', text='Status')
-treeview.grid(row=5, columnspan=2, padx=5, pady=5)
+treeview.grid(row=5, columnspan=3, padx=5, pady=5)
 
 # Botão para consultar os serviços
 botao_consultar = tk.Button(janela, text="Consultar", command=primeira_consulta)
-botao_consultar.grid(row=4, columnspan=2, padx=5, pady=5)
+botao_consultar.grid(row=4, columnspan=3, padx=5, pady=5)
 
 # Botão de mensagem de instrução
 botao_instrucao = tk.Button(janela, text="Instrução", command=exibir_mensagem)
-botao_instrucao.grid(row=3, columnspan=2, padx=5, pady=5)
+botao_instrucao.grid(row=3, columnspan=3, padx=5, pady=5)
 
 # Botão para iniciar os serviços
 botao_iniciar = tk.Button(janela, text="Iniciar Serviços", command=iniciar_servicos)
-botao_iniciar.grid(row=6, column=0, padx=5, pady=5)
 
 # Botão para parar os serviços
 botao_parar = tk.Button(janela, text="Parar Serviços", command=parar_servicos)
-botao_parar.grid(row=6, column=1, padx=5, pady=5)
 
 # Campo de entrada para o código HCM
 entry_codigo_hcm = tk.Entry(janela)
+
+# Combobox para selecionar o serviço
+combobox_servicos = ttk.Combobox(janela, state="readonly")
 
 # Computadores para consulta
 computadores = ["OCSENAPLH01", "OCSENAPL01", "OCSENAPL02", "OCSENAPL03", "OCSENAPL04", "OCSENINT01", "OCSENMDW01"]  # Adicione mais se necessário
