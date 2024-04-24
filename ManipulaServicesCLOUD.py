@@ -5,7 +5,7 @@ from tkinter import ttk
 
 # Função para exibir mensagem de instrução
 def exibir_mensagem():
-    messagebox.showinfo("Instrução", 'Selecione o ambiente desejado (Produção ou Homologação) e clique em "Consultar".\n\nNa barra inferior, selecione o serviço desejado ou clique em "Todos" para executar o comando em todos os serviços apresentados.')
+    messagebox.showinfo("Instrução", 'Selecione o ambiente desejado (Produção ou Homologação) e clique em "Consultar".\n\nNa barra inferior, selecione o serviço desejado ou selecione "Todos" para executar o comando em todos os serviços apresentados.')
 
 # Função para realizar a consulta e exibir resultados
 def primeira_consulta():
@@ -190,7 +190,7 @@ janela = tk.Tk()
 janela.title("Manipula Serviços HCM SaaS Orion")
 
 # Criar os rótulos e campos de entrada
-label_tipo_ambiente = tk.Label(janela, text="TIPO DE AMBIENTE:")
+label_tipo_ambiente = tk.Label(janela, text='SELECIONE O AMBIENTE E CLIQUE EM "CONSULTAR"')
 label_tipo_ambiente.grid(row=1, column=0, padx=5, pady=5)
 
 var_tipo_ambiente = tk.StringVar(janela)
