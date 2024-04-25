@@ -5,7 +5,7 @@ from tkinter import ttk
 
 # Função para exibir mensagem de instrução
 def exibir_mensagem():
-    messagebox.showinfo("Instrução", 'Digite o SERVIDOR e o nome do CLIENTE, clique em "Consultar", serão exibidos todos os processos em execução, caso deseje encerrar algum processo, digite o ID correspondente e clique em "Encerrar Processo".')
+    messagebox.showinfo("Instrução", 'Digite o SERVIDOR e o nome do CLIENTE, clique em "Consultar", serão exibidos todos os processos em execução.\n\nCaso deseje encerrar algum processo, digite o ID correspondente e clique em "Encerrar Processo".\n\nClique em "Encerrar Todos" para finalizar TODOS os processos apresentados na tela.')
 
 # Função para realizar a primeira consulta e exibir resultados
 def primeira_consulta():
@@ -107,7 +107,10 @@ label_encerrar_processo = tk.Label(janela, text="ID do Processo:")
 treeview = ttk.Treeview(janela, columns=('PSComputerName', 'ProcessName'), show='headings')
 treeview.heading('PSComputerName', text='Campos')
 treeview.heading('ProcessName', text='Detalhes do Processo')
-treeview.grid(row=5, columnspan=2, padx=5, pady=5)
+treeview.grid(row=10, columnspan=2, padx=5, pady=5)
+
+# Definir a altura da Treeview (em número de linhas)
+treeview['height'] = 20  # Ajuste o valor conforme necessário
 
 # Definindo a largura da Treeview
 treeview.column("PSComputerName", width=200)
@@ -126,8 +129,8 @@ botao_encerrar_processo = tk.Button(janela, text="Encerrar o Processo ID", comma
 botao_encerrar_processo.grid(row=4, columnspan=2, padx=5, pady=5)
 
 # Botão para encerrar TODOS os processos
-botao_encerrar_todos_processos = tk.Button(janela, text="ENCERRAR TODOS", command=encerrar_todos_processos)
-botao_encerrar_todos_processos.grid(row=10, columnspan=2, padx=5, pady=5)
+botao_encerrar_todos_processos = tk.Button(janela, text="Encerrar Todos", command=encerrar_todos_processos)
+botao_encerrar_todos_processos.grid(row=15, columnspan=2, padx=5, pady=5)
 
 # Campo de entrada para o código HCM
 entry_encerrar_processo = tk.Entry(janela)
