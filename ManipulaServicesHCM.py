@@ -5,7 +5,7 @@ from tkinter import ttk
 
 # Função para exibir mensagem de instrução
 def exibir_mensagem():
-    messagebox.showinfo("Instrução", 'Digite o nome do cliente e clique em "Consultar", será consultado o Serviço de Informação da Instalação.\n\nConfirme o código HCM do cliente, digite o código no campo que será habilitado e escolha o tipo de ambiente, Produção ou Homologação, em seguida, clique em "Consultar" novamente.\n\nNo botão inferior, selecione o serviço desejado ou clique em "Todos" para executar o comando em todos os serviços apresentados.')
+    messagebox.showinfo("Instrução", 'Digite o nome do cliente e clique em "Consultar", será consultado o Serviço do Motor e-Social.\n\nConfirme o código HCM do cliente, digite o código no campo que será habilitado e escolha o tipo de ambiente, Produção ou Homologação, em seguida, clique em "Consultar" novamente.\n\nNa barra inferior, selecione o serviço desejado ou selecione "Todos" para executar o comando em todos os serviços apresentados.')
 
 # Função para realizar a primeira consulta e exibir resultados
 def primeira_consulta():
@@ -17,7 +17,7 @@ def primeira_consulta():
 
     for computador in computadores:
         # Comando para verificar o serviço
-        comando = f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente}*" }} | Where-Object {{ $_.Name -like "*SeniorInstInfo*" }} | Format-Table PSComputerName, Name, PathName, State'
+        comando = f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente}*" }} | Where-Object {{ $_.Name -like "*motor*" }} | Format-Table PSComputerName, Name, State'
 
         # Executa o comando no PowerShell e captura a saída
         resultado = subprocess.check_output(['powershell', comando], text=True)
@@ -42,14 +42,13 @@ def inserir_na_tabela(resultado):
     for line in lines:
         data = line.split()
         # Verificar se a linha contém os valores esperados
-        if len(data) >= 4:
-            # Capturar PSComputerName, Name, PathName e State
+        if len(data) >= 3:
+            # Capturar PSComputerName, Name e State
             ps_computer_name = data[0]
             name = data[1]
-            path_name = data[2]
             # Encontrar o campo 'State'
-            state = next((x for x in data if x == "Running" or x == "Stopped"), "N/A")
-            treeview.insert('', 'end', values=(ps_computer_name, name, path_name, state))
+            state = data[-1]
+            treeview.insert('', 'end', values=(ps_computer_name, name, state))
 
 # Função para realizar a segunda consulta e exibir resultados
 def segunda_consulta():
@@ -76,26 +75,39 @@ def segunda_consulta():
 
     for computador in computadores:
         # Comando para verificar o serviço
-        comando = f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | Format-Table PSComputerName, Name, PathName, State'
+        comando = f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | Format-Table PSComputerName, Name, State'
 
         # Executa o comando no PowerShell e captura a saída
         resultado = subprocess.check_output(['powershell', comando], text=True)
 
         # Inserir resultado na tabela
-        inserir_na_tabela(resultado)
+        inserir_na_tabela_segunda(resultado)
 
         # Adicionar os serviços da consulta atual à lista de todos os serviços
         lines = resultado.strip().split('\n')
-        services = [line.split()[1] for line in lines if len(line.split()) >= 4]  # Capturar apenas o nome do serviço
+        services = [line.split()[1] for line in lines if len(line.split()) >= 3]  # Capturar apenas o nome do serviço
         all_services.extend(services)
 
     # Preencher o Combobox com todos os serviços
     preencher_combobox(all_services)
 
     # Atualizar a janela para exibir o Combobox e os botões
-    combobox_servicos.grid(row=6, columnspan=3, padx=5, pady=5)
+    combobox_servicos.grid(row=7, columnspan=3, padx=5, pady=5)
     botao_iniciar.grid(row=7, column=0, padx=5, pady=5)
-    botao_parar.grid(row=7, column=1, padx=5, pady=5)
+    botao_parar.grid(row=7, column=2, padx=5, pady=5)
+
+def inserir_na_tabela_segunda(resultado):
+    lines = resultado.strip().split('\n')
+    for line in lines:
+        data = line.split()
+        # Verificar se a linha contém os valores esperados
+        if len(data) >= 3:
+            # Capturar PSComputerName, Name e State
+            ps_computer_name = data[0]
+            name = data[1]
+            # Encontrar o campo 'State'
+            state = data[-1]
+            treeview.insert('', 'end', values=(ps_computer_name, name, state))
 
 # Função para preencher o Combobox com os nomes dos serviços
 def preencher_combobox(services):
@@ -166,49 +178,48 @@ def parar_servicos():
 
 # Criar a janela
 janela = tk.Tk()
-janela.title("Consulta de Serviços HCM")
+janela.title("Manipulador de Serviços HCM")
 
 # Criar os rótulos e campos de entrada
-label_nome_cliente = tk.Label(janela, text="Nome do Cliente:")
+label_nome_cliente = tk.Label(janela, text="NOME DO CLIENTE:")
 label_nome_cliente.grid(row=0, column=0, padx=5, pady=5)
 entry_nome_cliente = tk.Entry(janela)
 entry_nome_cliente.grid(row=0, column=1, padx=5, pady=5)
 
-label_codigo_hcm = tk.Label(janela, text="Código HCM:")
+label_codigo_hcm = tk.Label(janela, text="CÓDIGO HCM:")
 
-label_tipo_ambiente = tk.Label(janela, text="Tipo de Ambiente:")
+label_tipo_ambiente = tk.Label(janela, text="TIPO DE AMBIENTE:")
 label_tipo_ambiente.grid(row=1, column=0, padx=5, pady=5)
 
 var_tipo_ambiente = tk.StringVar(janela)
-var_tipo_ambiente.set("Produção")  # Valor padrão
+var_tipo_ambiente.set("Homologação")  # Valor padrão
 
-opcao_producao = tk.Radiobutton(janela, text="Produção", variable=var_tipo_ambiente, value="Produção")
+opcao_producao = tk.Radiobutton(janela, text="PRODUÇÃO", variable=var_tipo_ambiente, value="Produção")
 opcao_producao.grid(row=1, column=1, padx=5, pady=5)
 
-opcao_homologacao = tk.Radiobutton(janela, text="Homologação", variable=var_tipo_ambiente, value="Homologação")
+opcao_homologacao = tk.Radiobutton(janela, text="HOMOLOGAÇÃO", variable=var_tipo_ambiente, value="Homologação")
 opcao_homologacao.grid(row=1, column=2, padx=5, pady=5)
 
 # Adicionar widget Treeview para mostrar os resultados
-treeview = ttk.Treeview(janela, columns=('PSComputerName', 'Name', 'PathName', 'State'), show='headings')
-treeview.heading('PSComputerName', text='Servidor')
-treeview.heading('Name', text='Serviço')
-treeview.heading('PathName', text='Diretório')
-treeview.heading('State', text='Status')
+treeview = ttk.Treeview(janela, columns=('PSComputerName', 'Name', 'State'), show='headings')
+treeview.heading('PSComputerName', text='SERVIDOR')
+treeview.heading('Name', text='NOME DO SERVIÇO')
+treeview.heading('State', text='STATUS')
 treeview.grid(row=5, columnspan=3, padx=5, pady=5)
 
 # Botão para consultar os serviços
-botao_consultar = tk.Button(janela, text="Consultar", command=primeira_consulta)
+botao_consultar = tk.Button(janela, text="CONSULTAR", command=primeira_consulta)
 botao_consultar.grid(row=4, columnspan=3, padx=5, pady=5)
 
 # Botão de mensagem de instrução
-botao_instrucao = tk.Button(janela, text="Instrução", command=exibir_mensagem)
+botao_instrucao = tk.Button(janela, text="INSTRUÇÃO", command=exibir_mensagem)
 botao_instrucao.grid(row=3, columnspan=3, padx=5, pady=5)
 
 # Botão para iniciar os serviços
-botao_iniciar = tk.Button(janela, text="Iniciar Serviços", command=iniciar_servicos)
+botao_iniciar = tk.Button(janela, text="INICIAR SERVIÇO(S)", command=iniciar_servicos)
 
 # Botão para parar os serviços
-botao_parar = tk.Button(janela, text="Parar Serviços", command=parar_servicos)
+botao_parar = tk.Button(janela, text="PARAR SERVIÇO(S)", command=parar_servicos)
 
 # Campo de entrada para o código HCM
 entry_codigo_hcm = tk.Entry(janela)
@@ -217,6 +228,6 @@ entry_codigo_hcm = tk.Entry(janela)
 combobox_servicos = ttk.Combobox(janela, state="readonly")
 
 # Computadores para consulta
-computadores = ["OCSENAPLH01", "OCSENAPL01", "OCSENAPL02", "OCSENAPL03", "OCSENAPL04", "OCSENINT01", "OCSENMDW01"]  # Adicione mais se necessário
+computadores = ["nb021505"]  # Adicione mais se necessário
 
 janela.mainloop()
