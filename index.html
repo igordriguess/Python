@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Administração de Serviços HCM</title>
+</head>
+<body>
+    <h1>Portal de Administração de Serviços HCM</h1>
+
+    <form id="consultaForm">
+        <label for="nomeCliente">Nome do Cliente:</label>
+        <input type="text" id="nomeCliente" name="nome_cliente">
+        <button type="submit">Consultar</button>
+    </form>
+
+    <form id="consultaClienteAmbienteForm">
+        <label for="codigoCliente">Código do Cliente:</label>
+        <input type="text" id="codigoCliente" name="codigo_cliente">
+        <label for="tipoAmbiente">Tipo de Ambiente:</label>
+        <select id="tipoAmbiente" name="tipo_ambiente">
+            <option value="_h">Homologação</option>
+            <option value="_p">Produção</option>
+        </select>
+        <button type="submit">Consultar Serviços do Cliente</button>
+    </form>
+
+    <div id="resultado">
+        <!-- Aqui serão exibidos os resultados da consulta -->
+    </div>
+
+    <div id="acoesServico" style="display: none;">
+        <form id="acoesServicoForm">
+            <label for="servicoSelecionado">Selecione o Serviço:</label>
+            <select id="servicoSelecionado" name="servico_selecionado">
+                <!-- Opções serão adicionadas dinamicamente após a consulta -->
+            </select>
+            <button type="button" id="iniciarServico">Iniciar Serviço(s)</button>
+            <button type="button" id="pararServico">Parar Serviço(s)</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#consultaForm').submit(function(event) {
+                event.preventDefault();
+                var nomeCliente = $('#nomeCliente').val();
+                $.ajax({
+                    type: 'POST',
+                    url: '/consultar',
+                    data: {nome_cliente: nomeCliente},
+                    success: function(response) {
+                        // Limpar resultados anteriores
+                        $('#resultado').empty();
+                        // Exibir os resultados da consulta
+                        $.each(response.resultados, function(index, resultado) {
+                            $('#resultado').append('<p>' + resultado + '</p>');
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            });
+
+            $('#consultaClienteAmbienteForm').submit(function(event) {
+                event.preventDefault();
+                var codigoCliente = $('#codigoCliente').val();
+                var tipoAmbiente = $('#tipoAmbiente').val();
+                $.ajax({
+                    type: 'POST',
+                    url: '/consultar_cliente_ambiente',
+                    data: {
+                        codigo_cliente: codigoCliente,
+                        tipo_ambiente: tipoAmbiente // Aqui adicionamos o tipo de ambiente aos dados enviados
+                    },
+                    success: function(response) {
+                        // Limpar resultados anteriores
+                        $('#resultado').empty();
+                        // Exibir os resultados da consulta
+                        $.each(response.resultados, function(index, resultado) {
+                            $('#resultado').append('<p>' + resultado + '</p>');
+                        });
+                        // Adicionar opções à barra de seleção
+                        $('#servicoSelecionado').empty();
+                        $('#servicoSelecionado').append('<option value="Todos">Todos</option>'); // Adicionar a opção "Todos"
+                        $.each(response.servicos, function(index, servico) {
+                            $('#servicoSelecionado').append('<option value="' + servico.Name + '">' + servico.Name + '</option>');
+                        });
+                        // Exibir a seção de ações do serviço
+                        $('#acoesServico').show();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            });
+
+            $('#iniciarServico').click(function() {
+                var servicoSelecionado = $('#servicoSelecionado').val();
+                $.ajax({
+                    type: 'POST',
+                    url: '/iniciar_servico',
+                    data: {servico_selecionado: servicoSelecionado},
+                    success: function(response) {
+                        // Lidar com o sucesso, se necessário
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            });
+
+            $('#pararServico').click(function() {
+                var servicoSelecionado = $('#servicoSelecionado').val();
+                $.ajax({
+                    type: 'POST',
+                    url: '/parar_servico',
+                    data: {servico_selecionado: servicoSelecionado},
+                    success: function(response) {
+                        // Lidar com o sucesso, se necessário
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
