@@ -31,10 +31,10 @@
 
     <div id="acoesServico" style="display: none;">
         <form id="acoesServicoForm">
-            <label for="servicoSelecionado">Selecione o Serviço:</label>
-            <select id="servicoSelecionado" name="servico_selecionado">
-                <!-- Opções serão adicionadas dinamicamente após a consulta -->
-            </select>
+            <label for="servicosDisponiveis">Selecione o(s) Serviço(s):</label><br>
+            <input type="checkbox" id="todos" name="todos">
+            <label for="todos">Todos</label><br>
+            <div id="servicosDisponiveis"></div>
             <button type="button" id="iniciarServico">Iniciar Serviço(s)</button>
             <button type="button" id="pararServico">Parar Serviço(s)</button>
         </form>
@@ -43,6 +43,10 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+            $('#todos').change(function() {
+                $('input[name="servico_selecionado[]"]').prop('checked', $(this).prop('checked'));
+            });
+
             $('#consultaForm').submit(function(event) {
                 event.preventDefault();
                 var nomeCliente = $('#nomeCliente').val();
@@ -51,9 +55,7 @@
                     url: '/consultar',
                     data: {nome_cliente: nomeCliente},
                     success: function(response) {
-                        // Limpar resultados anteriores
                         $('#resultado').empty();
-                        // Exibir os resultados da consulta
                         $.each(response.resultados, function(index, resultado) {
                             $('#resultado').append('<p>' + resultado + '</p>');
                         });
@@ -73,22 +75,20 @@
                     url: '/consultar_cliente_ambiente',
                     data: {
                         codigo_cliente: codigoCliente,
-                        tipo_ambiente: tipoAmbiente // Aqui adicionamos o tipo de ambiente aos dados enviados
+                        tipo_ambiente: tipoAmbiente
                     },
                     success: function(response) {
-                        // Limpar resultados anteriores
                         $('#resultado').empty();
-                        // Exibir os resultados da consulta
                         $.each(response.resultados, function(index, resultado) {
                             $('#resultado').append('<p>' + resultado + '</p>');
                         });
-                        // Adicionar opções à barra de seleção
-                        $('#servicoSelecionado').empty();
-                        $('#servicoSelecionado').append('<option value="Todos">Todos</option>'); // Adicionar a opção "Todos"
+                        $('#servicosDisponiveis').empty();
+                        $('#servicosDisponiveis').append('<input type="checkbox" id="todos" name="servico_selecionado[]" value="Todos"><br>');
                         $.each(response.servicos, function(index, servico) {
-                            $('#servicoSelecionado').append('<option value="' + servico.Name + '">' + servico.Name + '</option>');
+                            if (servico.Name !== "PSComputerName" && servico.Name !== "Name" && servico.Name !== "State") {
+                                $('#servicosDisponiveis').append('<input type="checkbox" id="' + servico.Name + '" name="servico_selecionado[]" value="' + servico.Name + '"><label for="' + servico.Name + '">' + servico.Name + '</label><br>');
+                            }
                         });
-                        // Exibir a seção de ações do serviço
                         $('#acoesServico').show();
                     },
                     error: function(xhr, status, error) {
@@ -98,11 +98,13 @@
             });
 
             $('#iniciarServico').click(function() {
-                var servicoSelecionado = $('#servicoSelecionado').val();
+                var servicosSelecionados = $('input[name="servico_selecionado[]"]:checked').map(function(){
+                    return $(this).val();
+                }).get();
                 $.ajax({
                     type: 'POST',
                     url: '/iniciar_servico',
-                    data: {servico_selecionado: servicoSelecionado},
+                    data: {servico_selecionado: servicosSelecionados},
                     success: function(response) {
                         // Lidar com o sucesso, se necessário
                     },
@@ -113,11 +115,13 @@
             });
 
             $('#pararServico').click(function() {
-                var servicoSelecionado = $('#servicoSelecionado').val();
+                var servicosSelecionados = $('input[name="servico_selecionado[]"]:checked').map(function(){
+                    return $(this).val();
+                }).get();
                 $.ajax({
                     type: 'POST',
                     url: '/parar_servico',
-                    data: {servico_selecionado: servicoSelecionado},
+                    data: {servico_selecionado: servicosSelecionados},
                     success: function(response) {
                         // Lidar com o sucesso, se necessário
                     },
