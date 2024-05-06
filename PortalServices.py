@@ -22,6 +22,7 @@ app.jinja_env.filters['parse_json'] = parse_json
 def main():
     return render_template('index.html')
 
+# Função para formatar o resultado e inserir no Flask
 def format_results(results):
     formatted_results = []
     header_mapping = {
@@ -85,7 +86,7 @@ def consultar_cliente_ambiente():
         resultado_json = subprocess.check_output(['powershell', comando], text=True)
         resultados.append(resultado_json)
 
-        servicos_computador = resultado_json.strip().split('\n')
+        servicos_computador = [line.strip() for line in resultado_json.strip().split('\n')[1:] if line.strip() and not line.startswith(('PSComputerName', '--------------'))]
         servicos.update(servicos_computador)
     
     # Formatar os resultados em linhas
@@ -94,7 +95,7 @@ def consultar_cliente_ambiente():
     # Enviar apenas os nomes dos serviços para o frontend
     return jsonify(resultados=formatted_results, servicos=[{'Name': servico} for servico in servicos])
 
-# Função para iniciar o serviço
+# Função para iniciar o(s) serviço(s)
 @app.route('/iniciar_servico', methods=['POST'])
 def iniciar_servico():
     tipo_ambiente = request.form.get('tipo_ambiente')
@@ -105,38 +106,33 @@ def iniciar_servico():
         ambiente = "h"
 
     nome_cliente_formatado = f"{session['nome_cliente']}_{session['codigo_cliente']}_{session['ambiente']}"
-    servico_selecionado = request.form['servico_selecionado']
+    servicos_selecionados = request.form.getlist('servico_selecionado[]')
 
-    print("Valor de servico_selecionado:", servico_selecionado)  # Adicionando print para depuração
+    for servico_selecionado in servicos_selecionados:
+        if servico_selecionado.lower() == "todos":  # Verifica se "Todos" foi selecionado
+            for computador in servidores:
+                # Comando para parar todos os serviços
+                comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }}).StartService()'
+                # Executar o comando para parar todos os serviços
+                subprocess.run(['powershell', comando_iniciar], text=True)
 
-    # Expressão regular para extrair o nome do serviço com base nos critérios fornecidos
-    servico_regex = r'(Motor|SeniorInst|CSM|HCMIntegrator|Wiipo|Concentradora|SAM|IntegrationBack)\S*'
-
-    # Extrair o nome do serviço usando a expressão regular
-    match = re.search(servico_regex, servico_selecionado)
-    if match:
-        nome_servico = match.group()
-    elif servico_selecionado.lower() == "todos":
-        nome_servico = None  # Definindo como None para indicar que todos os serviços devem ser iniciados
-    else:
-        print("Nome do serviço não encontrado")
-        return 'Nome do serviço não encontrado', 400  # Bad Request
-    
-    print("Nome do serviço:", nome_servico)
-
-    for computador in servidores:
-        # Comando para iniciar o serviço
-        if nome_servico is None:  # Se nome_servico for None, inicie todos os serviços
-            comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }}).StartService()'
         else:
-            comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -eq "{nome_servico}" }}).StartService()'
+            # Expressão regular para extrair o nome do serviço com base nos critérios fornecidos
+            servico_regex = r'(Motor|SeniorInst|CSM|HCMIntegrator|Wiipo|Concentradora|SAM|IntegrationBack|Middleware)\S*'
+            # Extrair o nome do serviço usando a expressão regular
+            match = re.search(servico_regex, servico_selecionado)
+            if match:
+                nome_servico = match.group()
+            
+            for computador in servidores:
+                # Comando para parar o serviço específico
+                comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -eq "{nome_servico}" }}).StartService()'
+                # Executar o comando para parar o serviço específico
+                subprocess.run(['powershell', comando_iniciar], text=True)
 
-        # Executar o comando
-        subprocess.run(['powershell', comando_iniciar], text=True)
+    return 'Serviço(s) parado(s) com sucesso', 200  # OK
 
-        print(comando_iniciar)
-
-# Função para parar o serviço
+# Função para parar o(s) serviço(s)
 @app.route('/parar_servico', methods=['POST'])
 def parar_servico():
     tipo_ambiente = request.form.get('tipo_ambiente')
@@ -147,36 +143,30 @@ def parar_servico():
         ambiente = "h"
 
     nome_cliente_formatado = f"{session['nome_cliente']}_{session['codigo_cliente']}_{session['ambiente']}"
-    servico_selecionado = request.form['servico_selecionado']
+    servicos_selecionados = request.form.getlist('servico_selecionado[]')
 
-    print("Valor de servico_selecionado:", servico_selecionado)  # Adicionando print para depuração
-
-    # Expressão regular para extrair o nome do serviço com base nos critérios fornecidos
-    servico_regex = r'(Motor|SeniorInst|CSM|HCMIntegrator|Wiipo|Concentradora|SAM|IntegrationBack)\S*'
-
-    # Extrair o nome do serviço usando a expressão regular
-    match = re.search(servico_regex, servico_selecionado)
-    if match:
-        nome_servico = match.group()
-    elif servico_selecionado.lower() == "todos":
-        nome_servico = None  # Definindo como None para indicar que todos os serviços devem ser iniciados
-    else:
-        print("Nome do serviço não encontrado")
-        return 'Nome do serviço não encontrado', 400  # Bad Request
-    
-    print("Nome do serviço:", nome_servico)
-
-    for computador in servidores:
-        # Comando para iniciar o serviço
-        if nome_servico is None:  # Se nome_servico for None, inicie todos os serviços
-            comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }}).StopService()'
+    for servico_selecionado in servicos_selecionados:
+        if servico_selecionado.lower() == "todos":  # Verifica se "Todos" foi selecionado
+            for computador in servidores:
+                # Comando para parar todos os serviços
+                comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }}).StopService()'
+                # Executar o comando para parar todos os serviços
+                subprocess.run(['powershell', comando_parar], text=True)
         else:
-            comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -eq "{nome_servico}" }}).StopService()'
+            # Expressão regular para extrair o nome do serviço com base nos critérios fornecidos
+            servico_regex = r'(Motor|SeniorInst|CSM|HCMIntegrator|Wiipo|Concentradora|SAM|IntegrationBack|Middleware)\S*'
+            # Extrair o nome do serviço usando a expressão regular
+            match = re.search(servico_regex, servico_selecionado)
+            if match:
+                nome_servico = match.group()
+            
+            for computador in servidores:
+                # Comando para parar o serviço específico
+                comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -eq "{nome_servico}" }}).StopService()'
+                # Executar o comando para parar o serviço específico
+                subprocess.run(['powershell', comando_parar], text=True)
 
-        # Executar o comando
-        subprocess.run(['powershell', comando_parar], text=True)
-
-        print(comando_parar)
+    return 'Serviço(s) parado(s) com sucesso', 200  # OK
 
 servidores = ["OCSENAPLH01", "OCSENAPL01", "OCSENAPL02", "OCSENAPL03", "OCSENAPL04", "OCSENINT01", "OCSENMDW01"] # Adicione mais se necessário
 
