@@ -40,15 +40,17 @@ def limpar_tabela():
 def inserir_na_tabela(resultado):
     lines = resultado.strip().split('\n')
     for line in lines:
-        data = line.split()
-        # Verificar se a linha contém os valores esperados
-        if len(data) >= 3:
-            # Capturar PSComputerName, Name e State
-            ps_computer_name = data[0]
-            name = data[1]
-            # Encontrar o campo 'State'
-            state = data[-1]
-            treeview.insert('', 'end', values=(ps_computer_name, name, state))
+        # Ignorar linhas que começam com "PSComputerName" ou "-----------"
+        if not line.startswith("PSComputerName") and not line.startswith("-----------"):
+            data = line.split()
+            # Verificar se a linha contém os valores esperados
+            if len(data) >= 3:
+                # Capturar PSComputerName, Name e State
+                ps_computer_name = data[0]
+                name = data[1]
+                # Encontrar o campo 'State'
+                state = data[-1]
+                treeview.insert('', 'end', values=(ps_computer_name, name, state))
 
 # Função para realizar a segunda consulta e exibir resultados
 def segunda_consulta():
@@ -99,20 +101,23 @@ def segunda_consulta():
 def inserir_na_tabela_segunda(resultado):
     lines = resultado.strip().split('\n')
     for line in lines:
-        data = line.split()
-        # Verificar se a linha contém os valores esperados
-        if len(data) >= 3:
-            # Capturar PSComputerName, Name e State
-            ps_computer_name = data[0]
-            name = data[1]
-            # Encontrar o campo 'State'
-            state = data[-1]
-            treeview.insert('', 'end', values=(ps_computer_name, name, state))
+        # Ignorar linhas que começam com "PSComputerName" ou "-----------"
+        if not line.startswith("PSComputerName") and not line.startswith("-----------"):
+            data = line.split()
+            # Verificar se a linha contém os valores esperados
+            if len(data) >= 3:
+                # Capturar PSComputerName, Name e State
+                ps_computer_name = data[0]
+                name = data[1]
+                # Encontrar o campo 'State'
+                state = data[-1]
+                treeview.insert('', 'end', values=(ps_computer_name, name, state))
 
 # Função para preencher o Combobox com os nomes dos serviços
 def preencher_combobox(services):
     services = [service for service in services if service != "Name"]  # Excluir a linha "Name" se presente
     combobox_servicos['values'] = ["Todos"] + services
+    combobox_servicos.config(width=40)  # Definir a largura do combobox
 
 # Função para INICIAR os serviços
 def iniciar_servicos():
@@ -200,12 +205,21 @@ opcao_producao.grid(row=1, column=1, padx=5, pady=5)
 opcao_homologacao = tk.Radiobutton(janela, text="HOMOLOGAÇÃO", variable=var_tipo_ambiente, value="Homologação")
 opcao_homologacao.grid(row=1, column=2, padx=5, pady=5)
 
+# Criar estilo para a tabela
+style = ttk.Style()
+style.configure("Treeview", rowheight=50)  # Ajuste o valor de rowheight conforme necessário
+
 # Adicionar widget Treeview para mostrar os resultados
 treeview = ttk.Treeview(janela, columns=('PSComputerName', 'Name', 'State'), show='headings')
 treeview.heading('PSComputerName', text='SERVIDOR')
 treeview.heading('Name', text='NOME DO SERVIÇO')
 treeview.heading('State', text='STATUS')
-treeview.grid(row=5, columnspan=3, padx=5, pady=5)
+treeview.grid(row=20, column=0, columnspan=3, padx=5, pady=5)
+
+# Definir a largura das colunas
+treeview.column('PSComputerName', width=200)  # Ajuste o valor de width conforme necessário
+treeview.column('Name', width=400)  # Ajuste o valor de width conforme necessário
+treeview.column('State', width=200)  # Ajuste o valor de width conforme necessário
 
 # Botão para consultar os serviços
 botao_consultar = tk.Button(janela, text="CONSULTAR", command=primeira_consulta)
@@ -228,6 +242,6 @@ entry_codigo_hcm = tk.Entry(janela)
 combobox_servicos = ttk.Combobox(janela, state="readonly")
 
 # Computadores para consulta
-computadores = ["nb021505"]  # Adicione mais se necessário
+computadores = ["OCSENAPLH01", "OCSENAPL01", "OCSENAPL02", "OCSENAPL03", "OCSENAPL04", "OCSENINT01", "OCSENMDW01"] # Adicione mais se necessário
 
 janela.mainloop()
