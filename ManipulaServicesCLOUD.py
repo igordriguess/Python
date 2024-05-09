@@ -48,9 +48,9 @@ def primeira_consulta():
     preencher_combobox(all_services)
 
     # Atualizar a janela para exibir o Combobox e os botões
-    combobox_servicos.grid(row=7, columnspan=3, padx=5, pady=5)
-    botao_iniciar.grid(row=7, column=0, padx=5, pady=5)
-    botao_parar.grid(row=7, column=2, padx=5, pady=5)
+    combobox_servicos.grid(row=4, column=1, padx=5, pady=5)
+    botao_iniciar.grid(row=4, column=0, padx=5, pady=5)
+    botao_parar.grid(row=4, column=2, padx=5, pady=5)
 
 # Função para mascarar o nome do serviço se necessário
 def mask_service_name(service_name):
@@ -91,6 +91,7 @@ def preencher_combobox(services):
     # Manter uma lista separada com os nomes reais dos serviços
     global real_services
     real_services = [real_name for _, real_name in mascarar_servicos(services)]
+    combobox_servicos.config(width=40)  # Definir a largura do combobox
 
 # Função para limpar a tabela
 def limpar_tabela():
@@ -188,23 +189,24 @@ def parar_servicos():
 # Criar a janela
 janela = tk.Tk()
 janela.title("Manipula Serviços HCM SaaS Orion")
+janela.iconbitmap(r"\\ocmegfs03\datafiles$\Resolvedores\Igor\VSCodeAutomacoes\ico\icon.ico")
 
 # Criar os rótulos e campos de entrada
-label_tipo_ambiente = tk.Label(janela, text='SELECIONE O AMBIENTE E CLIQUE EM "CONSULTAR"')
+label_tipo_ambiente = tk.Label(janela, text='Selecione o Ambiente:')
 label_tipo_ambiente.grid(row=1, column=0, padx=5, pady=5)
 
 var_tipo_ambiente = tk.StringVar(janela)
 var_tipo_ambiente.set("Homologação")  # Valor padrão
 
-opcao_producao = tk.Radiobutton(janela, text="PRODUÇÃO", variable=var_tipo_ambiente, value="Produção")
+opcao_producao = tk.Radiobutton(janela, text="Produção", variable=var_tipo_ambiente, value="Produção")
 opcao_producao.grid(row=1, column=1, padx=5, pady=5)
 
-opcao_homologacao = tk.Radiobutton(janela, text="HOMOLOGAÇÃO", variable=var_tipo_ambiente, value="Homologação")
+opcao_homologacao = tk.Radiobutton(janela, text="Homologação", variable=var_tipo_ambiente, value="Homologação")
 opcao_homologacao.grid(row=1, column=2, padx=5, pady=5)
 
 # Criar estilo para a tabela
 style = ttk.Style()
-style.configure("Treeview", rowheight=50)  # Ajuste o valor de rowheight conforme necessário
+style.configure("Treeview", rowheight=60)  # Ajuste o valor de rowheight conforme necessário
 
 # Adicionar widget Treeview para mostrar os resultados
 treeview = ttk.Treeview(janela, columns=('Name', 'State'), show='headings')
@@ -220,11 +222,11 @@ treeview.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
 
 # Botão de mensagem de instrução
 botao_instrucao = tk.Button(janela, text="INSTRUÇÃO", command=exibir_mensagem)
-botao_instrucao.grid(row=3, columnspan=3, padx=5, pady=5)
+botao_instrucao.grid(row=3, column=2, padx=5, pady=5)
 
 # Botão para consultar os serviços
 botao_consultar = tk.Button(janela, text="CONSULTAR", command=primeira_consulta)
-botao_consultar.grid(row=4, columnspan=3, padx=5, pady=5)
+botao_consultar.grid(row=3, column=0, padx=5, pady=5)
 
 # Botão para iniciar os serviços
 botao_iniciar = tk.Button(janela, text="INICIAR SERVIÇO(S)", command=iniciar_servicos)
@@ -234,7 +236,6 @@ botao_parar = tk.Button(janela, text="PARAR SERVIÇO(S)", command=parar_servicos
 
 # Combobox para selecionar o serviço
 combobox_servicos = ttk.Combobox(janela, state="readonly")
-#combobox_servicos.grid(row=7, column=0, columnspan=2, padx=5, pady=5)
 
 # Computadores para consulta
 computadores = ["nb021505"]  # Adicione mais se necessário
