@@ -183,7 +183,8 @@ def parar_servicos():
 
 # Criar a janela
 janela = tk.Tk()
-janela.title("Manipulador de Serviços HCM")
+janela.title("Manipulador de Serviços HCM SaaS Orion")
+janela.iconbitmap(r"\\ocmegfs03\datafiles$\Resolvedores\Igor\VSCodeAutomacoes\ico\icon.ico")
 
 # Criar os rótulos e campos de entrada
 label_nome_cliente = tk.Label(janela, text="NOME DO CLIENTE:")
@@ -207,7 +208,7 @@ opcao_homologacao.grid(row=1, column=2, padx=5, pady=5)
 
 # Criar estilo para a tabela
 style = ttk.Style()
-style.configure("Treeview", rowheight=50)  # Ajuste o valor de rowheight conforme necessário
+style.configure("Treeview", rowheight=40)  # Ajuste o valor de rowheight conforme necessário
 
 # Adicionar widget Treeview para mostrar os resultados
 treeview = ttk.Treeview(janela, columns=('PSComputerName', 'Name', 'State'), show='headings')
