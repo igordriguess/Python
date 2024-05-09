@@ -189,7 +189,7 @@ def parar_servicos():
 # Criar a janela
 janela = tk.Tk()
 janela.title("Manipula Serviços HCM SaaS Orion")
-janela.iconbitmap(r"\\ocmegfs03\datafiles$\Resolvedores\Igor\VSCodeAutomacoes\ico\icon.ico")
+janela.iconbitmap(r"C:\Users\igor.pinhanelli\Desktop\Projeto\ico\icon.ico")
 
 # Criar os rótulos e campos de entrada
 label_tipo_ambiente = tk.Label(janela, text='Selecione o Ambiente:')
