@@ -1,11 +1,6 @@
 import subprocess
 import tkinter as tk
-from tkinter import messagebox
 from tkinter import ttk
-
-# Função para exibir mensagem de instrução
-def exibir_mensagem():
-    messagebox.showinfo("Instrução", 'Digite o nome do cliente e clique em "Consultar", será consultado o Serviço do Motor e-Social.\n\nConfirme o código HCM do cliente, digite o código no campo que será habilitado e escolha o tipo de ambiente, Produção ou Homologação, em seguida, clique em "Consultar" novamente.\n\nNa barra inferior, selecione o serviço desejado ou selecione "Todos" para executar o comando em todos os serviços apresentados.')
 
 # Função para realizar a primeira consulta e exibir resultados
 def primeira_consulta():
@@ -25,16 +20,30 @@ def primeira_consulta():
         # Inserir resultado na tabela
         inserir_na_tabela(resultado)
 
-    # Habilitar o campo para digitar o código HCM
-    label_codigo_hcm.grid(row=2, column=0, padx=5, pady=5)
-    entry_codigo_hcm.grid(row=2, column=1, padx=5, pady=5)
+    # Habilitar o campo para digitar o código HCM e selecionar o ambiente
+    label_tipo_ambiente.grid(row=2, column=0, padx=5, pady=5)
+    opcao_producao = tk.Radiobutton(janela, text="PRODUÇÃO", variable=var_tipo_ambiente, value="Produção")
+    opcao_producao.grid(row=2, column=1, padx=5, pady=5)
+    opcao_homologacao = tk.Radiobutton(janela, text="HOMOLOGAÇÃO", variable=var_tipo_ambiente, value="Homologação")
+    opcao_homologacao.grid(row=2, column=2, padx=5, pady=5)
+
+    label_codigo_hcm.grid(row=1, column=0, padx=5, pady=5)
+    entry_codigo_hcm.grid(row=1, column=1, padx=5, pady=5)
     entry_codigo_hcm.config(state=tk.NORMAL)  # Habilitar o campo
-    botao_consultar.config(command=segunda_consulta)  # Configurar o botão para executar a segunda consulta
+
+    # Mostrar o botão para consultar cliente
+    botao_consultar_cliente.grid(row=1, column=2, padx=5, pady=5)
+
+    limpar_combobox()
 
 # Função para limpar a tabela
 def limpar_tabela():
     for item in treeview.get_children():
         treeview.delete(item)
+
+# Função para limpar as informações do Combobox
+def limpar_combobox():
+    combobox_servicos['values'] = []
 
 # Função para inserir resultado na tabela
 def inserir_na_tabela(resultado):
@@ -195,16 +204,9 @@ entry_nome_cliente.grid(row=0, column=1, padx=5, pady=5)
 label_codigo_hcm = tk.Label(janela, text="CÓDIGO HCM:")
 
 label_tipo_ambiente = tk.Label(janela, text="TIPO DE AMBIENTE:")
-label_tipo_ambiente.grid(row=1, column=0, padx=5, pady=5)
 
 var_tipo_ambiente = tk.StringVar(janela)
 var_tipo_ambiente.set("Homologação")  # Valor padrão
-
-opcao_producao = tk.Radiobutton(janela, text="PRODUÇÃO", variable=var_tipo_ambiente, value="Produção")
-opcao_producao.grid(row=1, column=1, padx=5, pady=5)
-
-opcao_homologacao = tk.Radiobutton(janela, text="HOMOLOGAÇÃO", variable=var_tipo_ambiente, value="Homologação")
-opcao_homologacao.grid(row=1, column=2, padx=5, pady=5)
 
 # Criar estilo para a tabela
 style = ttk.Style()
@@ -222,13 +224,14 @@ treeview.column('PSComputerName', width=200)  # Ajuste o valor de width conforme
 treeview.column('Name', width=400)  # Ajuste o valor de width conforme necessário
 treeview.column('State', width=200)  # Ajuste o valor de width conforme necessário
 
-# Botão para consultar os serviços
-botao_consultar = tk.Button(janela, text="CONSULTAR", command=primeira_consulta)
-botao_consultar.grid(row=4, columnspan=3, padx=5, pady=5)
+# Botão para consultar os serviços na primeira consulta
+botao_consultar = tk.Button(janela, text="CONSULTAR CÓDIGO HCM", command=primeira_consulta)
+botao_consultar.grid(row=0, column=2, padx=5, pady=5)
 
-# Botão de mensagem de instrução
-botao_instrucao = tk.Button(janela, text="INSTRUÇÃO", command=exibir_mensagem)
-botao_instrucao.grid(row=3, columnspan=3, padx=5, pady=5)
+# Botão para consultar os serviços na segunda consulta
+botao_consultar_cliente = tk.Button(janela, text="CONSULTAR CLIENTE", command=segunda_consulta)
+botao_consultar_cliente.grid(row=1, column=2, padx=5, pady=5)
+botao_consultar_cliente.grid_remove()  # Ocultar o botão inicialmente
 
 # Botão para iniciar os serviços
 botao_iniciar = tk.Button(janela, text="INICIAR SERVIÇO(S)", command=iniciar_servicos)
