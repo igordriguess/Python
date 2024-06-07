@@ -3,6 +3,9 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
 
+# Dicionário para mapear nomes reais e mascarados
+nome_mascarado_para_real = {}
+
 # Função para exibir mensagem de instrução
 def exibir_mensagem():
     messagebox.showinfo("Instrução", 'Selecione o ambiente desejado (Produção ou Homologação) e clique em "Consultar".\n\nNa barra inferior, selecione o serviço desejado ou selecione "Todos" para executar o comando em todos os serviços apresentados.')
@@ -55,7 +58,21 @@ def primeira_consulta():
 # Função para preencher o Combobox com os nomes reais dos serviços
 def preencher_combobox(services):
     services = [service for service in services if service != "Name"]  # Excluir a linha "Name" se presente
-    combobox_servicos['values'] = ["Todos"] + services
+    masked_services = []
+    for service in services:
+        masked_name = "Senior Motor e-Social" if "motor" in service.lower() else \
+                      "Senior Serviço de Informação da Instalação" if "seniorinst" in service.lower() else \
+                      "Senior Integrador Wiipo" if "wiipo" in service.lower() else \
+                      "Senior Middleware" if "middleware" in service.lower() else \
+                      "Senior SAM Integrador" if "integrador" in service.lower() else \
+                      "Senior Integrador G7" if "integration" in service.lower() else \
+                      "Senior Concentradora" if "concentradora" in service.lower() else \
+                      "Senior CSM Center" if "center" in service.lower() else \
+                      "Senior Integrador HCM" if "integrator" in service.lower() else service
+        masked_services.append(masked_name)
+        nome_mascarado_para_real[masked_name] = service
+
+    combobox_servicos['values'] = ["Todos"] + masked_services
     combobox_servicos.config(width=40)  # Definir a largura do combobox
 
 # Função para limpar a tabela
@@ -75,7 +92,18 @@ def inserir_na_tabela(resultado):
             state = data[-1]  # Último elemento é o estado
             # Substituir "Running" por "Em execução" e "Stopped" por "Parado"
             state = "Em Execução" if state == "Running" else "Parado" if state == "Stopped" else state
-            treeview.insert('', 'end', values=(name, state))
+            # Mascarar o nome do serviço conforme as regras
+            masked_name = "Senior Motor e-Social" if "motor" in name.lower() else \
+                          "Senior Serviço de Informação da Instalação" if "seniorinst" in name.lower() else \
+                          "Senior Integrador Wiipo" if "wiipo" in name.lower() else \
+                          "Senior Integrador HCM" if "integrator" in name.lower() else \
+                          "Senior SAM Integrador" if "integrador" in name.lower() else \
+                          "Senior Integrador G7" if "integration" in name.lower() else \
+                          "Senior Concentradora" if "concentradora" in name.lower() else \
+                          "Senior CSM Center" if "center" in name.lower() else \
+                          "Senior Middleware" if "middleware" in name.lower() else name
+            nome_mascarado_para_real[masked_name] = name
+            treeview.insert('', 'end', values=(masked_name, state))
 
 # Função para obter o serviço selecionado no Combobox
 def obter_servico_selecionado():
@@ -100,13 +128,16 @@ def iniciar_servicos():
 
     nome_cliente_formatado = f"{nome_cliente}_{ambiente}".lower()
 
+    # Mapear o nome mascarado para o nome real
+    servico_real = nome_mascarado_para_real.get(servico_selecionado, servico_selecionado)
+
     # Loop sobre os computadores
     for computador in computadores:
         # Comando para iniciar o serviço
-        if servico_selecionado == "Todos":
+        if servico_real == "Todos":
             comando_iniciar = f'Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | ForEach-Object {{ $_.StartService() }}'
         else:
-            comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -like "*{servico_selecionado}*" }}).StartService()'
+            comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -like "*{servico_real}*" }}).StartService()'
 
         print(comando_iniciar)
 
@@ -134,13 +165,16 @@ def parar_servicos():
 
     nome_cliente_formatado = f"{nome_cliente}_{ambiente}".lower()
 
+    # Mapear o nome mascarado para o nome real
+    servico_real = nome_mascarado_para_real.get(servico_selecionado, servico_selecionado)
+
     # Loop sobre os computadores
     for computador in computadores:
         # Comando para iniciar o serviço
-        if servico_selecionado == "Todos":
-            comando_parar= f'Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | ForEach-Object {{ $_.StopService() }}'
+        if servico_real == "Todos":
+            comando_parar = f'Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | ForEach-Object {{ $_.StopService() }}'
         else:
-            comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -like "*{servico_selecionado}*" }}).StopService()'
+            comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -like "*{servico_real}*" }}).StopService()'
 
         print(comando_parar)
 
@@ -152,7 +186,7 @@ def parar_servicos():
 
 # Criar a janela
 janela = tk.Tk()
-janela.title("Manipula Serviços HCM SaaS Orion")
+janela.title("Manipulador de Serviços HCM SaaS Orion")
 
 # Criar os rótulos e campos de entrada
 label_tipo_ambiente = tk.Label(janela, text='Selecione o Ambiente:')
