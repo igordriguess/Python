@@ -22,9 +22,9 @@ def primeira_consulta():
 
     # Habilitar o campo para digitar o código HCM e selecionar o ambiente
     label_tipo_ambiente.grid(row=2, column=0, padx=5, pady=5)
-    opcao_producao = tk.Radiobutton(janela, text="PRODUÇÃO", variable=var_tipo_ambiente, value="Produção")
+    opcao_producao = tk.Radiobutton(janela, text="Produção", variable=var_tipo_ambiente, value="Produção")
     opcao_producao.grid(row=2, column=1, padx=5, pady=5)
-    opcao_homologacao = tk.Radiobutton(janela, text="HOMOLOGAÇÃO", variable=var_tipo_ambiente, value="Homologação")
+    opcao_homologacao = tk.Radiobutton(janela, text="Homologação", variable=var_tipo_ambiente, value="Homologação")
     opcao_homologacao.grid(row=2, column=2, padx=5, pady=5)
 
     label_codigo_hcm.grid(row=1, column=0, padx=5, pady=5)
@@ -193,17 +193,16 @@ def parar_servicos():
 # Criar a janela
 janela = tk.Tk()
 janela.title("Manipulador de Serviços HCM SaaS Orion")
-janela.iconbitmap(r"\\ocmegfs03\datafiles$\Resolvedores\Igor\VSCodeAutomacoes\ico\icon.ico")
 
 # Criar os rótulos e campos de entrada
-label_nome_cliente = tk.Label(janela, text="NOME DO CLIENTE:")
+label_nome_cliente = tk.Label(janela, text="Nome do Cliente:")
 label_nome_cliente.grid(row=0, column=0, padx=5, pady=5)
 entry_nome_cliente = tk.Entry(janela)
 entry_nome_cliente.grid(row=0, column=1, padx=5, pady=5)
 
-label_codigo_hcm = tk.Label(janela, text="CÓDIGO HCM:")
+label_codigo_hcm = tk.Label(janela, text="Código HCM:")
 
-label_tipo_ambiente = tk.Label(janela, text="TIPO DE AMBIENTE:")
+label_tipo_ambiente = tk.Label(janela, text="Tipo de Ambiente:")
 
 var_tipo_ambiente = tk.StringVar(janela)
 var_tipo_ambiente.set("Homologação")  # Valor padrão
@@ -214,9 +213,9 @@ style.configure("Treeview", rowheight=40)  # Ajuste o valor de rowheight conform
 
 # Adicionar widget Treeview para mostrar os resultados
 treeview = ttk.Treeview(janela, columns=('PSComputerName', 'Name', 'State'), show='headings')
-treeview.heading('PSComputerName', text='SERVIDOR')
-treeview.heading('Name', text='NOME DO SERVIÇO')
-treeview.heading('State', text='STATUS')
+treeview.heading('PSComputerName', text='Servidor')
+treeview.heading('Name', text='Nome do Serviço')
+treeview.heading('State', text='Status')
 treeview.grid(row=20, column=0, columnspan=3, padx=5, pady=5)
 
 # Definir a largura das colunas
@@ -225,19 +224,19 @@ treeview.column('Name', width=400)  # Ajuste o valor de width conforme necessár
 treeview.column('State', width=200)  # Ajuste o valor de width conforme necessário
 
 # Botão para consultar os serviços na primeira consulta
-botao_consultar = tk.Button(janela, text="CONSULTAR CÓDIGO HCM", command=primeira_consulta)
+botao_consultar = tk.Button(janela, text="Consultar Código HCM", command=primeira_consulta)
 botao_consultar.grid(row=0, column=2, padx=5, pady=5)
 
 # Botão para consultar os serviços na segunda consulta
-botao_consultar_cliente = tk.Button(janela, text="CONSULTAR CLIENTE", command=segunda_consulta)
+botao_consultar_cliente = tk.Button(janela, text="Consultar Cliente", command=segunda_consulta)
 botao_consultar_cliente.grid(row=1, column=2, padx=5, pady=5)
 botao_consultar_cliente.grid_remove()  # Ocultar o botão inicialmente
 
 # Botão para iniciar os serviços
-botao_iniciar = tk.Button(janela, text="INICIAR SERVIÇO(S)", command=iniciar_servicos)
+botao_iniciar = tk.Button(janela, text="Iniciar Serviço(s)", command=iniciar_servicos)
 
 # Botão para parar os serviços
-botao_parar = tk.Button(janela, text="PARAR SERVIÇO(S)", command=parar_servicos)
+botao_parar = tk.Button(janela, text="Parar Serviço(s)", command=parar_servicos)
 
 # Campo de entrada para o código HCM
 entry_codigo_hcm = tk.Entry(janela)
