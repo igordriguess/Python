@@ -13,18 +13,21 @@ def exibir_mensagem():
 # Função para realizar a consulta e exibir resultados
 def primeira_consulta():
     # Definir o nome do cliente fixo
-    nome_cliente = "CLOUD_99999"
+    nome_cliente = "senior"
 
     # Obter os dados do formulário
     tipo_ambiente = var_tipo_ambiente.get()
 
-    # Formatando os dados
+    # Definir o filtro do ambiente
     if tipo_ambiente == "Produção":
-        ambiente = "p"
+        ambiente = nome_cliente.lower()  # Produção busca pelo nome do cliente
+        incluir_wildfly = True          # WildFly será incluído
+    elif tipo_ambiente == "Homologação":
+        ambiente = "teste"              # Homologação busca apenas por "Teste"
+        incluir_wildfly = False         # WildFly não será incluído
     else:
-        ambiente = "h"
-
-    nome_cliente_formatado = f"{nome_cliente}_{ambiente}".lower()
+        ambiente = None                 # Caso não seja Produção ou Homologação
+        incluir_wildfly = False
 
     # Limpar a tabela anterior
     limpar_tabela()
@@ -32,20 +35,35 @@ def primeira_consulta():
     # Lista para armazenar todos os serviços
     all_services = []
 
-    for computador in computadores:
-        # Comando para verificar o serviço
-        comando = f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | Format-Table Name, State'
+    if ambiente:  # Só realiza a consulta se um ambiente válido foi definido
+        for computador in computadores:
+            # Construir o comando para verificar o serviço
+            if incluir_wildfly:
+                comando = (
+                    f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | '
+                    f'Where-Object {{ $_.PathName -like "*{ambiente}*" -or $_.PathName -like "*wildfly*" }} | '
+                    f'Format-Table Name, State'
+                )
+            else:
+                comando = (
+                    f'Get-WmiObject -Class Win32_Service -ComputerName {computador} | '
+                    f'Where-Object {{ $_.PathName -like "*{ambiente}*" }} | '
+                    f'Format-Table Name, State'
+                )
 
-        # Executa o comando no PowerShell e captura a saída
-        resultado = subprocess.check_output(['powershell', comando], text=True)
+            # Executa o comando no PowerShell e captura a saída
+            try:
+                resultado = subprocess.check_output(['powershell', comando], text=True)
+            except subprocess.CalledProcessError as e:
+                resultado = f"Erro ao consultar {computador}: {e.output}"
 
-        # Inserir resultado na tabela
-        inserir_na_tabela(resultado)
+            # Inserir resultado na tabela
+            inserir_na_tabela(resultado)
 
-        # Adicionar os serviços da consulta atual à lista de todos os serviços
-        lines = resultado.strip().split('\n')
-        services = [' '.join(line.split()[:-1]) for line in lines if len(line.split()) >= 2]  # Capturar o nome completo do serviço
-        all_services.extend(services)
+            # Adicionar os serviços da consulta atual à lista de todos os serviços
+            lines = resultado.strip().split('\n')
+            services = [' '.join(line.split()[:-1]) for line in lines if len(line.split()) >= 2]  # Capturar o nome completo do serviço
+            all_services.extend(services)
 
     # Preencher o Combobox com todos os serviços
     preencher_combobox(all_services)
@@ -68,9 +86,17 @@ def preencher_combobox(services):
                       "Senior Integrador G7" if "integration" in service.lower() else \
                       "Senior Concentradora" if "concentradora" in service.lower() else \
                       "Senior CSM Center" if "center" in service.lower() else \
+                      "Senior SDE" if "sde_sde" in service.lower() else \
+                      "Senior SDE Print Service" if "sde_print_sde" in service.lower() else \
+                      "Senior SDE Teste" if "sde_sdeteste" in service.lower() else \
+                      "Senior SDE Print Service Teste" if "sde_print_sdeteste" in service.lower() else \
+                      "Senior WildFly" if "wildfly" in service.lower() else \
                       "Senior Integrador HCM" if "integrator" in service.lower() else service
         masked_services.append(masked_name)
         nome_mascarado_para_real[masked_name] = service
+
+        #print(f"Nome real do serviço: {service.lower()}")
+        #print(f"Nome do serviço com a mascara: {masked_name}")
 
     combobox_servicos['values'] = ["Todos"] + masked_services
     combobox_servicos.config(width=40)  # Definir a largura do combobox
@@ -101,6 +127,11 @@ def inserir_na_tabela(resultado):
                           "Senior Integrador G7" if "integration" in name.lower() else \
                           "Senior Concentradora" if "concentradora" in name.lower() else \
                           "Senior CSM Center" if "center" in name.lower() else \
+                          "Senior SDE" if "sde_sde" in name.lower() else \
+                          "Senior SDE Print Service" if "sde_print_sde" in name.lower() else \
+                          "Senior SDE Teste" if "sde_sdeteste" in name.lower() else \
+                          "Senior SDE Print Service Teste" if "sde_print_sdeteste" in name.lower() else \
+                          "Senior WildFly" if "wildfly" in name.lower() else \
                           "Senior Middleware" if "middleware" in name.lower() else name
             nome_mascarado_para_real[masked_name] = name
             treeview.insert('', 'end', values=(masked_name, state))
@@ -113,36 +144,53 @@ def obter_servico_selecionado():
 # Função para INICIAR os serviços
 def iniciar_servicos():
     # Definir o nome do cliente fixo
-    nome_cliente = "CLOUD_99999"
+    nome_cliente = "senior"
 
     # Obter os dados do formulário
     tipo_ambiente = var_tipo_ambiente.get()
 
+    # Obter o serviço selecionado pelo usuário
     servico_selecionado = obter_servico_selecionado()
 
-    # Formatando os dados
+    # Configurar o ambiente
     if tipo_ambiente == "Produção":
-        ambiente = "p"
+        ambiente = nome_cliente.lower()  # Produção busca pelo nome do cliente
+    elif tipo_ambiente == "Homologação":
+        ambiente = "teste"  # Homologação busca apenas por "Teste"
     else:
-        ambiente = "h"
-
-    nome_cliente_formatado = f"{nome_cliente}_{ambiente}".lower()
+        ambiente = None  # Caso não seja Produção ou Homologação
 
     # Mapear o nome mascarado para o nome real
     servico_real = nome_mascarado_para_real.get(servico_selecionado, servico_selecionado)
 
     # Loop sobre os computadores
-    for computador in computadores:
-        # Comando para iniciar o serviço
-        if servico_real == "Todos":
-            comando_iniciar = f'Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | ForEach-Object {{ $_.StartService() }}'
-        else:
-            comando_iniciar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -like "*{servico_real}*" }}).StartService()'
+    if ambiente:  # Só realiza a execução se o ambiente for válido
+        for computador in computadores:
+            # Construir o comando para iniciar o serviço
+            if servico_real == "Todos":
+                # Iniciar todos os serviços do ambiente, incluindo WildFly apenas em Produção
+                comando_iniciar = (
+                    f'Get-WMIObject win32_service -ComputerName {computador} | '
+                    f'Where-Object {{ $_.PathName -like "*{ambiente}*" '
+                    f'{"-or $_.PathName -like \"*wildfly*\"" if tipo_ambiente == "Produção" else ""} }} | '
+                    f'ForEach-Object {{ if ($_) {{ $_.StartService() }} }}'
+                )
+            else:
+                # Iniciar apenas o serviço selecionado
+                comando_iniciar = (
+                    f'$service = Get-WMIObject win32_service -ComputerName {computador} | '
+                    f'Where-Object {{ $_.Name -eq "{servico_real}" }}; '
+                    f'if ($service) {{ $service.StartService() }};'
+                )
 
-        print(comando_iniciar)
+            # Exibir o comando para debug
+            print(f"Executando comando: {comando_iniciar}")
 
-        # Executa o comando no PowerShell para iniciar o serviço
-        resultado_iniciar = subprocess.run(['powershell', '-Command', comando_iniciar])
+            # Executa o comando no PowerShell para iniciar o serviço
+            try:
+                resultado_iniciar = subprocess.run(['powershell', '-Command', comando_iniciar], text=True, check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Erro ao iniciar o serviço no computador {computador}: {e}")
 
     # Atualizar a tabela com o novo estado do serviço
     primeira_consulta()
@@ -150,43 +198,60 @@ def iniciar_servicos():
 # Função para PARAR os serviços
 def parar_servicos():
     # Definir o nome do cliente fixo
-    nome_cliente = "CLOUD_99999"
+    nome_cliente = "senior"
 
     # Obter os dados do formulário
     tipo_ambiente = var_tipo_ambiente.get()
 
+    # Obter o serviço selecionado pelo usuário
     servico_selecionado = obter_servico_selecionado()
 
-    # Formatando os dados
+    # Configurar o ambiente
     if tipo_ambiente == "Produção":
-        ambiente = "p"
+        ambiente = nome_cliente.lower()  # Produção busca pelo nome do cliente
+    elif tipo_ambiente == "Homologação":
+        ambiente = "teste"  # Homologação busca apenas por "Teste"
     else:
-        ambiente = "h"
-
-    nome_cliente_formatado = f"{nome_cliente}_{ambiente}".lower()
+        ambiente = None  # Caso não seja Produção ou Homologação
 
     # Mapear o nome mascarado para o nome real
     servico_real = nome_mascarado_para_real.get(servico_selecionado, servico_selecionado)
 
     # Loop sobre os computadores
-    for computador in computadores:
-        # Comando para iniciar o serviço
-        if servico_real == "Todos":
-            comando_parar = f'Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" }} | ForEach-Object {{ $_.StopService() }}'
-        else:
-            comando_parar = f'(Get-WMIObject win32_service -ComputerName {computador} | Where-Object {{ $_.PathName -like "*{nome_cliente_formatado}*" -and $_.Name -like "*{servico_real}*" }}).StopService()'
+    if ambiente:  # Só realiza a execução se o ambiente for válido
+        for computador in computadores:
+            # Construir o comando para iniciar o serviço
+            if servico_real == "Todos":
+                # Iniciar todos os serviços do ambiente, incluindo WildFly apenas em Produção
+                comando_parar = (
+                    f'Get-WMIObject win32_service -ComputerName {computador} | '
+                    f'Where-Object {{ $_.PathName -like "*{ambiente}*" '
+                    f'{"-or $_.PathName -like \"*wildfly*\"" if tipo_ambiente == "Produção" else ""} }} | '
+                    f'ForEach-Object {{ if ($_) {{ $_.StopService() }} }}'
+                )
+            else:
+                # Iniciar apenas o serviço selecionado
+                comando_parar = (
+                    f'$service = Get-WMIObject win32_service -ComputerName {computador} | '
+                    f'Where-Object {{ $_.Name -eq "{servico_real}" }}; '
+                    f'if ($service) {{ $service.StopService() }};'
+                )
 
-        print(comando_parar)
+            # Exibir o comando para debug
+            print(f"Executando comando: {comando_parar}")
 
-        # Executa o comando no PowerShell para iniciar o serviço
-        resultado_iniciar = subprocess.run(['powershell', '-Command', comando_parar])
+            # Executa o comando no PowerShell para iniciar o serviço
+            try:
+                resultado_iniciar = subprocess.run(['powershell', '-Command', comando_parar], text=True, check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Erro ao iniciar o serviço no computador {computador}: {e}")
 
     # Atualizar a tabela com o novo estado do serviço
     primeira_consulta()
 
 # Criar a janela
 janela = tk.Tk()
-janela.title("Manipulador de Serviços HCM SaaS Orion")
+janela.title("Manipulador de Serviços Senior")
 
 # Criar os rótulos e campos de entrada
 label_tipo_ambiente = tk.Label(janela, text='Selecione o Ambiente:')
@@ -235,6 +300,6 @@ botao_parar = tk.Button(janela, text="Parar Serviço(s)", command=parar_servicos
 combobox_servicos = ttk.Combobox(janela, state="readonly")
 
 # Computadores para consulta
-computadores = ["nb021505"]  # Adicione mais se necessário
+computadores = ["localhost"]  # Adicione mais se necessário
 
 janela.mainloop()
