@@ -1,23 +1,28 @@
 import subprocess
-import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from tkinter import messagebox, Tk, ttk as tk_tt
 
 # Dicionário para mapear nomes reais e mascarados
 nome_mascarado_para_real = {}
 
+# Lista de computadores para executar os comandos
+computadores = ["localhost"]  # Substitua com os nomes reais dos computadores
+
+# Configurações globais da interface
+root = Tk()
+root.title("Gerenciador de Serviços Statum")
+
+# Variável para o tipo de ambiente
+var_tipo_ambiente = ttk.StringVar(value="Produção")
+
 # Função para exibir mensagem de instrução
 def exibir_mensagem():
-    messagebox.showinfo("Instrução", 'Selecione o ambiente desejado (Produção ou Homologação) e clique em "Consultar".\n\nNa barra inferior, selecione o serviço desejado ou selecione "Todos" para executar o comando em todos os serviços apresentados.')
-
-import subprocess
-from tkinter import messagebox
-
-# Função para exibir mensagem de instrução
-def exibir_mensagem():
-    messagebox.showinfo("Instrução", 'Selecione o ambiente desejado (Produção ou Homologação) e clique em "Consultar".\n\nNa barra inferior, selecione o serviço desejado ou selecione "Todos" para executar o comando em todos os serviços apresentados.')
-
-import subprocess
+    messagebox.showinfo(
+        "Instrução",
+        'Selecione o ambiente desejado (Produção ou Homologação) e clique em "Consultar".\n\n'
+        'Na barra inferior, selecione o serviço desejado ou selecione "Todos" para executar o comando em todos os serviços apresentados.',
+    )
 
 # Função para realizar a consulta e exibir resultados
 def primeira_consulta():
@@ -50,7 +55,7 @@ def primeira_consulta():
 
             # Adicionar os filtros dependendo do ambiente
             if comando_wildfly:
-                comando += f' | Where-Object {{ $_.PathName -like "*{ambiente}*" -or $_.PathName -like "*wildfly*" -or $_.PathName -like "*domain\\*" -or $_.PathName -like "*gestaoponto\\*" -or $_.PathName -like "*csmcenter\\*"}}'
+                comando += f' | Where-Object {{ $_.PathName -like "*{ambiente}*" -or $_.PathName -like "*wildfly*" -or $_.PathName -like "*domain\\*" -or $_.PathName -like "*gestaoponto\\*" -or $_.PathName -like "*csmcenter\\*" -or $_.PathName -like "*spoolsv*"}}'
             elif comando_glassfish_teste:
                 comando += f' | Where-Object {{ $_.PathName -like "*{ambiente}*" -or $_.PathName -like "*domainteste\\*" -or $_.PathName -like "*gestaopontoteste\\*" }}'
 
@@ -76,11 +81,6 @@ def primeira_consulta():
     # Preencher o Combobox com todos os serviços
     preencher_combobox(all_services)
 
-    # Atualizar a janela para exibir o Combobox e os botões
-    combobox_servicos.grid(row=4, column=1, padx=5, pady=5)
-    botao_iniciar.grid(row=4, column=0, padx=5, pady=5)
-    botao_parar.grid(row=4, column=2, padx=5, pady=5)
-
 # Função para preencher o Combobox com os nomes reais dos serviços
 def preencher_combobox(services):
     services = [service for service in services if service != "Name"]  # Excluir a linha "Name" se presente
@@ -104,6 +104,7 @@ def preencher_combobox(services):
                       "Senior Glassfish 4 gestaoponto" if "gestaoponto" in service.lower() and "gestaopontoteste" not in service.lower() else \
                       "Senior Glassfish 4 gestaopontoteste" if "gestaopontoteste" in service.lower() else \
                       "Senior Glassfish 4 csmcenter" if "csmcenter" in service.lower() else \
+                      "Spooler de Impressão" if "spooler" in service.lower() else \
                       "Senior Integrador HCM" if "integrator" in service.lower() else service
         masked_services.append(masked_name)
         nome_mascarado_para_real[masked_name] = service
@@ -125,38 +126,56 @@ def limpar_tabela():
 
 # Função para inserir resultado na tabela
 def inserir_na_tabela(resultado):
+    # Contador para alternar entre as cores das linhas
+    index = 0
+
+    # Processar as linhas do resultado
     lines = resultado.strip().split('\n')
-    for line in lines[2:]:  # Começa a partir da 3ª linha para ignorar os cabeçalhos
+    for line in lines[2:]:  # Ignorar as duas primeiras linhas (cabeçalhos)
         data = line.split()
+        
         # Verificar se a linha contém os valores esperados
         if len(data) >= 2:
             # Capturar Name e State
             name = ' '.join(data[:-1])  # Juntar todos os elementos, exceto o último
             state = data[-1]  # Último elemento é o estado
+            
             # Substituir "Running" por "Em execução" e "Stopped" por "Parado"
             state = "Em Execução" if state == "Running" else "Parado" if state == "Stopped" else state
+            
             # Mascarar o nome do serviço conforme as regras
-            masked_name = "Senior Motor e-Social" if "motor" in name.lower() else \
-                          "Senior Serviço de Informação da Instalação" if "seniorinst" in name.lower() else \
-                          "Senior Integrador Wiipo" if "wiipo" in name.lower() else \
-                          "Senior Integrador HCM" if "integrator" in name.lower() else \
-                          "Senior SAM Integrador" if "integrador" in name.lower() else \
-                          "Senior Integrador G7" if "integration" in name.lower() else \
-                          "Senior Concentradora" if "concentradora" in name.lower() else \
-                          "Senior CSM Center" if "center" in name.lower() else \
-                          "Senior SDE" if "sde_sde" in name.lower() else \
-                          "Senior SDE Print Service" if "sde_print_sde" in name.lower() else \
-                          "Senior SDE Teste" if "sde_sdeteste" in name.lower() else \
-                          "Senior SDE Print Service Teste" if "sde_print_sdeteste" in name.lower() else \
-                          "Senior WildFly" if "wildfly" in name.lower() else \
-                          "Senior Glassfish 4 domain" if "domain" in name.lower() and "domainteste" not in name.lower() else \
-                          "Senior Glassfish 4 domainteste" if "domainteste" in name.lower() else \
-                          "Senior Glassfish 4 gestaoponto" if "gestaoponto" in name.lower() and "gestaopontoteste" not in name.lower() else \
-                          "Senior Glassfish 4 gestaopontoteste" if "gestaopontoteste" in name.lower() else \
-                          "Senior Glassfish 4 csmcenter" if "csmcenter\\" in name.lower() else \
-                          "Senior Middleware" if "middleware" in name.lower() else name
+            masked_name = (
+                "Senior Motor e-Social" if "motor" in name.lower() else
+                "Senior Serviço de Informação da Instalação" if "seniorinst" in name.lower() else
+                "Senior Integrador Wiipo" if "wiipo" in name.lower() else
+                "Senior Integrador HCM" if "integrator" in name.lower() else
+                "Senior SAM Integrador" if "integrador" in name.lower() else
+                "Senior Integrador G7" if "integration" in name.lower() else
+                "Senior Concentradora" if "concentradora" in name.lower() else
+                "Senior CSM Center" if "center" in name.lower() else
+                "Senior SDE" if "sde_sde" in name.lower() else
+                "Senior SDE Print Service" if "sde_print_sde" in name.lower() else
+                "Senior SDE Teste" if "sde_sdeteste" in name.lower() else
+                "Senior SDE Print Service Teste" if "sde_print_sdeteste" in name.lower() else
+                "Senior WildFly" if "wildfly" in name.lower() else
+                "Senior Glassfish 4 domain" if "domain" in name.lower() and "domainteste" not in name.lower() else
+                "Senior Glassfish 4 domainteste" if "domainteste" in name.lower() else
+                "Senior Glassfish 4 gestaoponto" if "gestaoponto" in name.lower() and "gestaopontoteste" not in name.lower() else
+                "Senior Glassfish 4 gestaopontoteste" if "gestaopontoteste" in name.lower() else
+                "Senior Glassfish 4 csmcenter" if "csmcenter\\" in name.lower() else
+                "Spooler de Impressão" if "spooler" in name.lower() else \
+                "Senior Middleware" if "middleware" in name.lower() else name
+            )
+            
+            # Mapeamento do nome mascarado para o nome real
             nome_mascarado_para_real[masked_name] = name
-            treeview.insert('', 'end', values=(masked_name, state))
+            
+            # Definir a tag de cor alternada (oddrow/evenrow)
+            tag = "oddrow" if index % 2 == 0 else "evenrow"
+            index += 1  # Incrementar o índice para alternar as tags
+            
+            # Inserir no Treeview
+            treeview.insert("", "end", values=(masked_name, state), tags=(tag,))
 
             # Verifica se o nome do serviço contém '-----' antes de exibir
             #if '----' not in name.lower():
@@ -201,7 +220,7 @@ def iniciar_servicos():
                 comando_iniciar = (
                     f'Get-WMIObject win32_service -ComputerName {computador} | '
                     f'Where-Object {{ $_.PathName -like "*{ambiente}*" '
-                    f'{"-or $_.PathName -like \"*wildfly*\" -or $_.PathName -like \"*domain\\*\" -or $_.PathName -like \"*gestaoponto\\*\" -or $_.PathName -like \"*csmcenter\\*\" " if tipo_ambiente == "Produção" else ""} }} | '
+                    f'{"-or $_.PathName -like \"*wildfly*\" -or $_.PathName -like \"*domain\\*\" -or $_.PathName -like \"*gestaoponto\\*\" -or $_.PathName -like \"*csmcenter\\*\" -or $_.PathName -like \"*spoolsv*\" " if tipo_ambiente == "Produção" else ""} }} | '
                     f'ForEach-Object {{ if ($_) {{ $_.StartService() }} }}'
                 )
             else:
@@ -255,7 +274,7 @@ def parar_servicos():
                 comando_parar = (
                     f'Get-WMIObject win32_service -ComputerName {computador} | '
                     f'Where-Object {{ $_.PathName -like "*{ambiente}*" '
-                    f'{"-or $_.PathName -like \"*wildfly*\" -or $_.PathName -like \"*domain\\*\" -or $_.PathName -like \"*gestaoponto\\*\" -or $_.PathName -like \"*csmcenter\\*\" " if tipo_ambiente == "Produção" else ""} }} | '
+                    f'{"-or $_.PathName -like \"*wildfly*\" -or $_.PathName -like \"*domain\\*\" -or $_.PathName -like \"*gestaoponto\\*\" -or $_.PathName -like \"*csmcenter\\*\" -or $_.PathName -like \"*spoolsv*\" " if tipo_ambiente == "Produção" else ""} }} | '
                     f'ForEach-Object {{ if ($_) {{ $_.StopService() }} }}'
                 )
             else:
@@ -278,57 +297,48 @@ def parar_servicos():
     # Atualizar a tabela com o novo estado do serviço
     primeira_consulta()
 
-# Criar a janela
-janela = tk.Tk()
-janela.title("Manipulador de Serviços Statum")
+# Configurar interface gráfica
+frame_top = ttk.Frame(root, padding=10)
+frame_top.grid(row=0, column=0, columnspan=3)
 
-# Criar os rótulos e campos de entrada
-label_tipo_ambiente = tk.Label(janela, text='Selecione o Ambiente:')
-label_tipo_ambiente.grid(row=1, column=0, padx=5, pady=5)
+##################### Cabeçalho #####################
+ttk.Label(frame_top, text="Ambiente:", font=("Roboto", 12)).grid(row=0, column=0, padx=5, pady=5)
+combo_ambiente = ttk.Combobox(frame_top, textvariable=var_tipo_ambiente, values=["Produção", "Homologação"], state="readonly", font=("Roboto", 12))
+combo_ambiente.grid(row=0, column=1, padx=5, pady=5)
+botao_consultar = ttk.Button(frame_top, text="Consultar", command=primeira_consulta, bootstyle="primary")
+botao_consultar.grid(row=0, column=2, padx=5, pady=5)
+botao_instrucoes = ttk.Button(frame_top, text="Instruções", command=exibir_mensagem, bootstyle="info")
+botao_instrucoes.grid(row=0, column=3, padx=5, pady=5)
 
-var_tipo_ambiente = tk.StringVar(janela)
-var_tipo_ambiente.set("Homologação")  # Valor padrão
-
-opcao_producao = tk.Radiobutton(janela, text="Produção", variable=var_tipo_ambiente, value="Produção")
-opcao_producao.grid(row=1, column=1, padx=5, pady=5)
-
-opcao_homologacao = tk.Radiobutton(janela, text="Homologação", variable=var_tipo_ambiente, value="Homologação")
-opcao_homologacao.grid(row=1, column=2, padx=5, pady=5)
-
-# Criar estilo para a tabela
+##################### Treeview #####################
+# Criação do Treeview com estilo
+treeview = ttk.Treeview(root, columns=("Serviço", "Estado"), show="headings", height=20)
+treeview.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
+# Configurando os cabeçalhos
+treeview.heading("Serviço", text="Serviço", anchor="center")
+treeview.heading("Estado", text="Estado", anchor="center")
+# Configurando as colunas
+treeview.column("Serviço", anchor="center", width=400)
+treeview.column("Estado", anchor="center", width=200)
+# Linhas alternadas (efeito zebra)
+treeview.tag_configure("oddrow", background="#F9F9F9")
+treeview.tag_configure("evenrow", background="#FFFFFF")
+# Estilo do Treeview
 style = ttk.Style()
-style.configure("Treeview", rowheight=40)  # Ajuste o valor de rowheight conforme necessário
+style.configure("Treeview", font=("Roboto", 12), rowheight=16)  # Fonte e altura das linhas
+style.configure("Treeview.Heading", font=("Roboto", 12, "bold"))  # Fonte dos cabeçalhos
+style.map("Treeview", background=[("selected", "#DCE4F2")], foreground=[("selected", "#000000")]) # Efeito de seleção da linha
 
-# Adicionar widget Treeview para mostrar os resultados
-treeview = ttk.Treeview(janela, columns=('Name', 'State'), show='headings')
-treeview.heading('Name', text='Nome do Serviço')
-treeview.heading('State', text='Estado')
-treeview.grid(row=20, column=0, columnspan=3, padx=100, pady=100)  # Ajuste para ocupar mais colunas
+##################### Barra de seleção "Combobox" #####################
+combobox_servicos = ttk.Combobox(root, state="readonly", font=("Roboto", 12))
+combobox_servicos.grid(row=2, column=0, padx=5, pady=5, columnspan=3)
+combobox_servicos.config(width=40)
 
-# Definir a largura das colunas
-treeview.column('Name', width=400)  # Ajuste o valor de width conforme necessário
-treeview.column('State', width=200)  # Ajuste o valor de width conforme necessário
+##################### Botões Iniciar e Parar #####################
+botao_iniciar = ttk.Button(root, text="Iniciar", command=iniciar_servicos, bootstyle="success", width=20)
+botao_iniciar.grid(row=3, column=0, padx=5, pady=5)
+botao_parar = ttk.Button(root, text="Parar", command=parar_servicos, bootstyle="danger", width=20)
+botao_parar.grid(row=3, column=2, padx=5, pady=5)
 
-treeview.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
-
-# Botão de mensagem de instrução
-botao_instrucao = tk.Button(janela, text="Instrução", command=exibir_mensagem)
-botao_instrucao.grid(row=3, column=2, padx=5, pady=5)
-
-# Botão para consultar os serviços
-botao_consultar = tk.Button(janela, text="Consultar Serviços", command=primeira_consulta)
-botao_consultar.grid(row=3, column=0, padx=5, pady=5)
-
-# Botão para iniciar os serviços
-botao_iniciar = tk.Button(janela, text="Iniciar Serviço(s)", command=iniciar_servicos)
-
-# Botão para parar os serviços
-botao_parar = tk.Button(janela, text="Parar Serviço(s)", command=parar_servicos)
-
-# Combobox para selecionar o serviço
-combobox_servicos = ttk.Combobox(janela, state="readonly")
-
-# Computadores para consulta
-computadores = ["localhost"]  # Adicione mais se necessário
-
-janela.mainloop()
+# Exibir a janela principal
+root.mainloop()
